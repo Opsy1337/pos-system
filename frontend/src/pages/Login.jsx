@@ -55,8 +55,7 @@ export default function Login() {
         </form>
 
         <div className="mt-6 p-4 bg-gray-50 rounded-2xl text-center text-sm text-gray-500">
-          <p>مدير: <b>admin</b> / <b>admin123</b></p>
-          <p>كاشير: <b>cashier</b> / <b>cash123</b></p>
+          <p>الحساب: <b>admin</b> / <b>admin123</b></p>
         </div>
       </div>
     </div>

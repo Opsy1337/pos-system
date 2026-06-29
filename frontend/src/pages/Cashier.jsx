@@ -19,7 +19,7 @@ export default function Cashier() {
   const [payMethod, setPayMethod] = useState('cash')
   const [cashAmount, setCashAmount] = useState('')
   const [discount, setDiscount] = useState(0)
-  const [settings, setSettings] = useState({ currency: 'ر.س', tax_rate: 15, store_name: 'متجري', receipt_footer: 'شكراً لزيارتكم' })
+  const [settings, setSettings] = useState({ currency: 'ر.س', tax_rate: 0, store_name: 'متجري', receipt_footer: 'شكراً لزيارتكم' })
 
   useEffect(() => { load() }, [])
 
@@ -60,8 +60,7 @@ export default function Cashier() {
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0)
   const discountAmt = Math.min(discount, subtotal)
-  const taxAmt = (subtotal - discountAmt) * settings.tax_rate / 100
-  const total = subtotal - discountAmt + taxAmt
+  const total = subtotal - discountAmt
   const change = parseFloat(cashAmount || 0) - total
 
   async function completeSale() {
@@ -71,7 +70,7 @@ export default function Cashier() {
         items: cart.map(i => ({ product_id: i.id, quantity: i.qty, unit_price: i.price })),
         discount,
         discount_type: 'amount',
-        tax_rate: settings.tax_rate,
+        tax_rate: 0,
         payment_method: payMethod,
       })
       setLastSale({ ...data, settings })
@@ -220,10 +219,6 @@ export default function Cashier() {
                 <span>خصم</span>
               </div>
             )}
-            <div className="flex justify-between text-gray-500 text-sm">
-              <span>{taxAmt.toFixed(2)} {settings.currency}</span>
-              <span>ضريبة {settings.tax_rate}%</span>
-            </div>
             <div className="flex justify-between font-bold text-2xl text-gray-900">
               <span>{total.toFixed(2)}</span>
               <span>الإجمالي</span>
@@ -331,7 +326,6 @@ export default function Cashier() {
               <div className="border-t border-dashed pt-2 text-xs space-y-1 text-right">
                 <div className="flex justify-between"><span>المجموع</span><span>{lastSale.subtotal?.toFixed(2)}</span></div>
                 {lastSale.discount > 0 && <div className="flex justify-between text-green-600"><span>خصم</span><span>- {lastSale.discount?.toFixed(2)}</span></div>}
-                <div className="flex justify-between"><span>ضريبة {lastSale.tax_rate}%</span><span>{lastSale.tax_amount?.toFixed(2)}</span></div>
                 <div className="flex justify-between font-bold text-base border-t pt-1"><span>الإجمالي</span><span>{lastSale.total?.toFixed(2)} {lastSale.settings?.currency}</span></div>
               </div>
               <p className="mt-3 text-gray-500 text-xs">{lastSale.settings?.receipt_footer}</p>
