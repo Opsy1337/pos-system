@@ -6,9 +6,18 @@ import toast from 'react-hot-toast'
 
 const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='60'%3E%F0%9F%9B%8D%EF%B8%8F%3C/text%3E%3C/svg%3E"
 const paymentLabels = { cash: '💵 نقدي', card: '💳 شبكة', transfer: '📱 تحويل' }
-
 const CAT_COLORS = ['#6B7280','#3B82F6','#EF4444','#F59E0B','#10B981','#8B5CF6','#EC4899','#14B8A6']
 const CAT_ICONS  = ['🏷️','🥤','🍽️','🍰','🛍️','☕','🧁','🍕','🥗','🍦','🛒','➕']
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+function weekAgoStr() {
+  const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10)
+}
+function monthAgoStr() {
+  const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10)
+}
 
 export default function Admin() {
   const { logout } = useAuth()
@@ -28,11 +37,17 @@ export default function Admin() {
 
   // Sales
   const [sales, setSales] = useState([])
+  const [salesTotal, setSalesTotal] = useState(0)
   const [selectedSale, setSelectedSale] = useState(null)
   const [settings, setSettings] = useState({ currency: 'ر.س', store_name: 'متجري', receipt_footer: 'شكراً لزيارتكم' })
 
+  // Sales filter
+  const [filterMode, setFilterMode] = useState('today') // today | week | month | custom
+  const [customFrom, setCustomFrom] = useState(todayStr())
+  const [customTo, setCustomTo] = useState(todayStr())
+
   useEffect(() => { loadAll() }, [])
-  useEffect(() => { if (tab === 'sales') loadSales() }, [tab])
+  useEffect(() => { if (tab === 'sales') loadSales() }, [tab, filterMode, customFrom, customTo])
 
   async function loadAll() {
     const [p, c, s] = await Promise.all([
@@ -45,9 +60,19 @@ export default function Admin() {
     setSettings(s.data)
   }
 
+  function getDateRange() {
+    const today = todayStr()
+    if (filterMode === 'today')  return { start: today, end: today }
+    if (filterMode === 'week')   return { start: weekAgoStr(), end: today }
+    if (filterMode === 'month')  return { start: monthAgoStr(), end: today }
+    return { start: customFrom, end: customTo }
+  }
+
   async function loadSales() {
-    const { data } = await api.get('/sales/?limit=100')
+    const { start, end } = getDateRange()
+    const { data } = await api.get(`/sales/?limit=200&start_date=${start}&end_date=${end}`)
     setSales(data.sales || [])
+    setSalesTotal((data.sales || []).reduce((s, x) => s + (x.total || 0), 0))
   }
 
   // --- Products ---
@@ -70,9 +95,11 @@ export default function Admin() {
 
   async function deleteProduct(id, name) {
     if (!confirm(`حذف "${name}"؟`)) return
-    await api.delete(`/products/${id}`)
-    toast.success('تم الحذف')
-    loadAll()
+    try {
+      await api.delete(`/products/${id}`)
+      toast.success('تم الحذف')
+      setProducts(prev => prev.filter(p => p.id !== id))
+    } catch (err) { toast.error(err.response?.data?.detail || 'خطأ في الحذف') }
   }
 
   function handleImageFile(e) {
@@ -101,6 +128,13 @@ export default function Admin() {
     catch (err) { toast.error(err.response?.data?.detail || 'لا يمكن الحذف') }
   }
 
+  const filterBtns = [
+    { k: 'today', l: 'اليوم' },
+    { k: 'week',  l: 'الأسبوع' },
+    { k: 'month', l: 'الشهر' },
+    { k: 'custom',l: 'تاريخ' },
+  ]
+
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
 
@@ -122,9 +156,9 @@ export default function Admin() {
       {/* Tabs */}
       <div className="flex bg-white border-b flex-shrink-0">
         {[
-          { k: 'products', l: '🏷️ المنتجات' },
+          { k: 'products',   l: '🏷️ المنتجات' },
           { k: 'categories', l: '📂 التصنيفات' },
-          { k: 'sales', l: '📄 الفواتير' },
+          { k: 'sales',      l: '📄 الفواتير' },
         ].map(t => (
           <button key={t.k} onClick={() => setTab(t.k)}
             className={`flex-1 py-4 font-bold text-lg transition ${tab === t.k ? 'border-b-4 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
@@ -197,10 +231,47 @@ export default function Admin() {
         {/* ── SALES ── */}
         {tab === 'sales' && (
           <div className="p-4 space-y-3">
+
+            {/* Filter buttons */}
+            <div className="flex gap-2">
+              {filterBtns.map(b => (
+                <button key={b.k} onClick={() => setFilterMode(b.k)}
+                  className={`flex-1 py-3 rounded-2xl font-bold text-base transition ${filterMode === b.k ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
+                  {b.l}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom date range */}
+            {filterMode === 'custom' && (
+              <div className="bg-white rounded-2xl p-4 flex gap-3 items-center">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-400 block mb-1">من</label>
+                  <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
+                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-400 block mb-1">إلى</label>
+                  <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
+                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+            )}
+
+            {/* Summary card */}
+            <div className="bg-blue-600 text-white rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <p className="text-blue-200 text-sm">{sales.length} فاتورة</p>
+                <p className="font-bold text-3xl">{salesTotal.toFixed(2)} {settings.currency}</p>
+              </div>
+              <p className="text-4xl">💰</p>
+            </div>
+
+            {/* List */}
             {sales.length === 0 ? (
-              <div className="text-center py-16 text-gray-300">
+              <div className="text-center py-12 text-gray-300">
                 <p className="text-5xl mb-3">📄</p>
-                <p className="text-xl">لا توجد فواتير بعد</p>
+                <p className="text-xl">لا توجد فواتير في هذه الفترة</p>
               </div>
             ) : (
               sales.map(s => (
@@ -237,31 +308,24 @@ export default function Admin() {
                 placeholder="اسم المنتج *"
                 className="w-full border-2 border-gray-200 rounded-2xl px-4 py-4 text-xl text-right focus:outline-none focus:border-blue-500"
                 required />
-
               <input type="number" min="0" step="0.01" value={pForm.price}
                 onChange={e => setPForm(f => ({ ...f, price: e.target.value }))}
                 placeholder="السعر *"
                 className="w-full border-2 border-gray-200 rounded-2xl px-4 py-4 text-xl text-right focus:outline-none focus:border-blue-500"
                 required />
-
               <select value={pForm.category_id} onChange={e => setPForm(f => ({ ...f, category_id: e.target.value }))}
                 className="w-full border-2 border-gray-200 rounded-2xl px-4 py-4 text-xl focus:outline-none focus:border-blue-500"
                 required>
                 <option value="">التصنيف *</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
               </select>
-
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="text-sm text-gray-500 block mb-1">الكمية (فارغ = غير محدود)</label>
-                  <input type="number" min="0" value={pForm.quantity === -1 ? '' : pForm.quantity}
-                    onChange={e => setPForm(f => ({ ...f, quantity: e.target.value === '' ? -1 : parseInt(e.target.value) }))}
-                    placeholder="غير محدود"
-                    className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-xl text-right focus:outline-none focus:border-blue-500" />
-                </div>
+              <div>
+                <label className="text-sm text-gray-500 block mb-1">الكمية (فارغ = غير محدود)</label>
+                <input type="number" min="0" value={pForm.quantity === -1 ? '' : pForm.quantity}
+                  onChange={e => setPForm(f => ({ ...f, quantity: e.target.value === '' ? -1 : parseInt(e.target.value) }))}
+                  placeholder="غير محدود"
+                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-xl text-right focus:outline-none focus:border-blue-500" />
               </div>
-
-              {/* Image */}
               <div>
                 <label className="text-sm text-gray-500 block mb-2">صورة المنتج (اختياري)</label>
                 <div className="flex gap-3 items-center">
@@ -279,7 +343,6 @@ export default function Admin() {
                   </div>
                 </div>
               </div>
-
               <button type="submit"
                 className="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl text-xl">
                 ✅ إضافة
@@ -302,7 +365,6 @@ export default function Admin() {
                 placeholder="اسم التصنيف *"
                 className="w-full border-2 border-gray-200 rounded-2xl px-4 py-4 text-xl text-right focus:outline-none focus:border-blue-500"
                 required />
-
               <div>
                 <label className="text-sm text-gray-500 block mb-2">أيقونة</label>
                 <div className="flex flex-wrap gap-2">
@@ -314,7 +376,6 @@ export default function Admin() {
                   ))}
                 </div>
               </div>
-
               <div>
                 <label className="text-sm text-gray-500 block mb-2">اللون</label>
                 <div className="flex flex-wrap gap-2">
@@ -325,7 +386,6 @@ export default function Admin() {
                   ))}
                 </div>
               </div>
-
               <button type="submit"
                 className="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl text-xl">
                 ✅ إضافة
@@ -364,7 +424,7 @@ function SaleDetail({ id, settings }) {
       <div className="text-center mb-4">
         <p className="font-bold text-lg">{settings.store_name}</p>
         <p className="text-gray-400 text-xs">{new Date(sale.created_at).toLocaleString('ar-SA')}</p>
-        <p className="text-gray-500 text-xs">{payLbl[sale.payment_method]} • {sale.cashier?.name}</p>
+        <p className="text-gray-500 text-xs">{payLbl[sale.payment_method]}</p>
       </div>
       <div className="border-t border-dashed pt-3 mb-3 space-y-2">
         {sale.items?.map((item, i) => (
@@ -377,7 +437,6 @@ function SaleDetail({ id, settings }) {
       <div className="border-t border-dashed pt-3 space-y-1">
         <div className="flex justify-between text-gray-500"><span>المجموع</span><span>{sale.subtotal?.toFixed(2)}</span></div>
         {sale.discount > 0 && <div className="flex justify-between text-green-600"><span>خصم</span><span>−{sale.discount?.toFixed(2)}</span></div>}
-        <div className="flex justify-between text-gray-500"><span>ضريبة {sale.tax_rate}%</span><span>{sale.tax_amount?.toFixed(2)}</span></div>
         <div className="flex justify-between font-bold text-xl border-t pt-2 mt-1">
           <span>{sale.total?.toFixed(2)} {settings.currency}</span>
           <span>الإجمالي</span>
