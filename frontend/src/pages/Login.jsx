@@ -54,9 +54,6 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-2xl text-center text-sm text-gray-500">
-          <p>الحساب: <b>admin</b> / <b>admin123</b></p>
-        </div>
       </div>
     </div>
   )
