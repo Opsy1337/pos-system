@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #f1f5f9;
+  direction: rtl;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.receipt-font { font-family: 'Courier New', monospace; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: white; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+}
+
+.print-only { display: none; }
+
+.product-card {
+  transition: all 0.15s ease;
+}
+.product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+.product-card:active {
+  transform: scale(0.97);
+}
+
+input, select, textarea {
+  font-family: 'Cairo', sans-serif !important;
+}
