@@ -28,7 +28,7 @@ class CategoryCreate(CategoryBase):
 class CategoryOut(CategoryBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductBase(BaseModel):
@@ -49,7 +49,7 @@ class ProductOut(ProductBase):
     category: Optional[CategoryOut] = None
     created_at: datetime
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SaleItemCreate(BaseModel):
@@ -75,7 +75,7 @@ class SaleItemOut(BaseModel):
     unit_price: float
     total_price: float
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SaleOut(BaseModel):
@@ -94,7 +94,7 @@ class SaleOut(BaseModel):
     cashier: Optional[dict] = None
     items: List[SaleItemOut] = []
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserBase(BaseModel):
@@ -112,7 +112,7 @@ class UserOut(UserBase):
     id: int
     created_at: datetime
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SettingsOut(BaseModel):
@@ -123,7 +123,7 @@ class SettingsOut(BaseModel):
     currency: str
     receipt_footer: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SettingsUpdate(BaseModel):
