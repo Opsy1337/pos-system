@@ -1,9 +1,11 @@
 services:
   - type: web
     name: pos-system
-    env: docker
+    env: python
     region: frankfurt
     plan: free
+    buildCommand: pip install -r backend/requirements.txt && cd frontend && npm install && npm run build
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: PORT
-        value: 8000
+      - key: PYTHON_VERSION
+        value: "3.11.0"
