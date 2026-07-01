@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Cashier from './pages/Cashier'
 import Admin from './pages/Admin'
+import ThermalReceiptDiv from './components/ThermalReceipt'
 
 function PrivateRoute({ children, adminOnly = false }) {
   const { user } = useAuth()
@@ -28,6 +29,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <ThermalReceiptDiv />
       </AuthProvider>
     </BrowserRouter>
   )

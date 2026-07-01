@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
 import toast from 'react-hot-toast'
+import { printReceipt } from '../components/ThermalReceipt'
 
 const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='60'%3E%F0%9F%9B%8D%EF%B8%8F%3C/text%3E%3C/svg%3E"
 const paymentLabels = { cash: '💵 نقدي', card: '💳 شبكة', transfer: '📱 تحويل' }
@@ -399,14 +400,12 @@ export default function Admin() {
       {selectedSale && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b">
-              <button onClick={() => window.print()} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold">🖨️</button>
-              <h3 className="font-bold text-xl">{selectedSale.invoice_number}</h3>
-              <button onClick={() => setSelectedSale(null)} className="text-3xl text-gray-300">✕</button>
-            </div>
-            <div className="overflow-y-auto max-h-[70vh]">
-              <SaleDetail id={selectedSale.id} settings={settings} />
-            </div>
+            <SaleDetail
+              id={selectedSale.id}
+              settings={settings}
+              onClose={() => setSelectedSale(null)}
+              invoiceNumber={selectedSale.invoice_number}
+            />
           </div>
         </div>
       )}
@@ -414,35 +413,53 @@ export default function Admin() {
   )
 }
 
-function SaleDetail({ id, settings }) {
+function SaleDetail({ id, settings, onClose, invoiceNumber }) {
   const [sale, setSale] = useState(null)
   useEffect(() => { api.get(`/sales/${id}`).then(r => setSale(r.data)) }, [id])
-  if (!sale) return <div className="text-center py-8 text-gray-400">⏳</div>
   const payLbl = { cash: 'نقدي', card: 'شبكة', transfer: 'تحويل' }
+
   return (
-    <div className="p-5 font-mono text-sm">
-      <div className="text-center mb-4">
-        <p className="font-bold text-lg">{settings.store_name}</p>
-        <p className="text-gray-400 text-xs">{new Date(sale.created_at).toLocaleString('ar-SA')}</p>
-        <p className="text-gray-500 text-xs">{payLbl[sale.payment_method]}</p>
+    <>
+      <div className="flex items-center justify-between p-5 border-b">
+        <button
+          onClick={() => sale && printReceipt(sale, settings)}
+          disabled={!sale}
+          className="bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-xl font-bold">
+          🖨️
+        </button>
+        <h3 className="font-bold text-xl">{invoiceNumber}</h3>
+        <button onClick={onClose} className="text-3xl text-gray-300">✕</button>
       </div>
-      <div className="border-t border-dashed pt-3 mb-3 space-y-2">
-        {sale.items?.map((item, i) => (
-          <div key={i} className="flex justify-between">
-            <span>{item.total_price.toFixed(2)}</span>
-            <span>{item.product_name} ×{item.quantity}</span>
+      <div className="overflow-y-auto max-h-[70vh]">
+        {!sale ? (
+          <div className="text-center py-8 text-gray-400">⏳</div>
+        ) : (
+          <div className="p-5 font-mono text-sm">
+            <div className="text-center mb-4">
+              <p className="font-bold text-lg">{settings.store_name}</p>
+              <p className="text-gray-400 text-xs">{new Date(sale.created_at).toLocaleString('ar-SA')}</p>
+              <p className="text-gray-500 text-xs">{payLbl[sale.payment_method]}</p>
+            </div>
+            <div className="border-t border-dashed pt-3 mb-3 space-y-2">
+              {sale.items?.map((item, i) => (
+                <div key={i} className="flex justify-between">
+                  <span>{item.total_price.toFixed(2)}</span>
+                  <span>{item.product_name} ×{item.quantity}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-dashed pt-3 space-y-1">
+              <div className="flex justify-between text-gray-500"><span>المجموع</span><span>{sale.subtotal?.toFixed(2)}</span></div>
+              {sale.discount > 0 && <div className="flex justify-between text-green-600"><span>خصم</span><span>−{sale.discount?.toFixed(2)}</span></div>}
+              <div className="flex justify-between font-bold text-xl border-t pt-2 mt-1">
+                <span>{sale.total?.toFixed(2)} {settings.currency}</span>
+                <span>الإجمالي</span>
+              </div>
+            </div>
+            <p className="text-center text-gray-400 mt-4 text-xs">{settings.receipt_footer}</p>
           </div>
-        ))}
+        )}
       </div>
-      <div className="border-t border-dashed pt-3 space-y-1">
-        <div className="flex justify-between text-gray-500"><span>المجموع</span><span>{sale.subtotal?.toFixed(2)}</span></div>
-        {sale.discount > 0 && <div className="flex justify-between text-green-600"><span>خصم</span><span>−{sale.discount?.toFixed(2)}</span></div>}
-        <div className="flex justify-between font-bold text-xl border-t pt-2 mt-1">
-          <span>{sale.total?.toFixed(2)} {settings.currency}</span>
-          <span>الإجمالي</span>
-        </div>
-      </div>
-      <p className="text-center text-gray-400 mt-4 text-xs">{settings.receipt_footer}</p>
-    </div>
+    </>
   )
 }

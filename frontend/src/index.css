@@ -21,10 +21,30 @@ body {
 .receipt-font { font-family: 'Courier New', monospace; }
 
 @media print {
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { background: white; }
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
+  /* إخفاء كل شيء عدا الإيصال */
+  body > * { display: none !important; }
+  #thermal-receipt { display: block !important; }
+
+  @page {
+    size: 80mm auto;
+    margin: 2mm 3mm;
+  }
+
+  #thermal-receipt {
+    width: 74mm;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #000;
+    background: #fff;
+    direction: rtl;
+  }
+
+  #thermal-receipt .r-title   { font-size: 15px; font-weight: bold; text-align: center; }
+  #thermal-receipt .r-center  { text-align: center; }
+  #thermal-receipt .r-divider { border-top: 1px dashed #000; margin: 4px 0; }
+  #thermal-receipt .r-row     { display: flex; justify-content: space-between; margin: 2px 0; }
+  #thermal-receipt .r-total   { font-size: 15px; font-weight: bold; }
+  #thermal-receipt .r-footer  { text-align: center; margin-top: 8px; font-size: 11px; }
 }
 
 .print-only { display: none; }

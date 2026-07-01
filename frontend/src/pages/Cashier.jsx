@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
 import toast from 'react-hot-toast'
+import { printReceipt } from '../components/ThermalReceipt'
 
 const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='60'%3E🛍️%3C/text%3E%3C/svg%3E"
 
@@ -303,7 +304,7 @@ export default function Cashier() {
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-xs shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
-              <button onClick={() => window.print()} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold">🖨️ طباعة</button>
+              <button onClick={() => printReceipt(lastSale, lastSale.settings)} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold">🖨️ طباعة</button>
               <h3 className="font-bold text-xl">الإيصال</h3>
               <button onClick={() => setShowReceipt(false)} className="text-2xl text-gray-400">✕</button>
             </div>
